@@ -35,7 +35,7 @@ def run_experiment(stimuli=None):
     pygame.mixer.init()
 
     # input user ID
-    user_ID, continuation, stimulus_seed, n_sessions = get_user_input("initialization")
+    user_ID, continuation, stimulus_seed, n_sessions, first_block = get_user_input("initialization")
 
     if continuation:
         print('deal with this!')
@@ -45,12 +45,13 @@ def run_experiment(stimuli=None):
             stimuli = create_experiment_stimuli(n_sessions, seed=stimulus_seed)
 
         # run sessions
-        for stimulus_set in stimuli:
-            start = get_user_input("session")
-            #start = False
-            #while not start:
-            #    start = get_user_input("session")
-            stim_times = run_session(stimulus_set['stimuli'], stimulus_set['triggers'])
+        for i, stimulus_set in enumerate(stimuli):
+            print(i)
+            print(first_block)
+            print(i<first_block)
+            if not i<first_block:
+                start = get_user_input("session")
+                stim_times = run_session(stimulus_set['stimuli'], stimulus_set['triggers'])
 
 
 # Run a single session
@@ -260,7 +261,7 @@ def create_session_stimuli(beeps, used_meaningful, used_scrambled, seed=42):
     # pick meaningful stimuli among unused meaningful stimuli 
     unused_meaningful = [m for m in meaningful_stimuli if m not in used_meaningful and m not in used_scrambled and m not in bad_sounds]
     meaningful = random.choices(unused_meaningful, k=n_meaningful)
-    used_meaningful.append(meaningful)
+    used_meaningful.extend(meaningful)
 
     # pick scrambled stimuli that correspond to the picked meaningful stimuli, but with opposite gender
     unused_scrambled = [s for s in scrambled_stimuli if s not in used_scrambled]
@@ -407,8 +408,12 @@ def get_user_input(case):
         subject_ID_entry.focus_set()
     
         # Continuation checkbox using ttk
-        is_continuation = tk.BooleanVar()
-        ttk.Checkbutton(root, text="Continuation of a previous run", variable=is_continuation).pack(pady=10)
+        is_continuation = False
+        
+        tk.Label(root, text="Which block should we start from?", font=font_vars).pack(pady=10)
+        start_trial = ttk.Entry(root, font=font_vars, width=10)
+        start_trial.insert(0, "1") 
+        start_trial.pack(pady=10)
     
         # "New stimulus set" checkbox using ttk
         tk.Label(root, text="Seed for stimulus generation:", font=font_vars).pack(pady=10)
@@ -423,14 +428,12 @@ def get_user_input(case):
         n_sessions.pack(pady=10)
         # Function to handle submit
         def on_submit():
-            global subject_ID, continuation_state, stimulus_seed, num_sessions
+            global subject_ID, continuation_state, stimulus_seed, num_sessions, first_block
             subject_ID = subject_ID_entry.get()
-            continuation_state = is_continuation.get()
+            #continuation_state = is_continuation.get()
             stimulus_seed = new_stimuli.get()
             num_sessions = n_sessions.get()
-            if not subject_ID:
-                messagebox.showwarning("Warning", "Please enter a Subject ID.")
-                return
+            first_block = start_trial.get()
             root.destroy()
     
         submit_button = ttk.Button(root, text="Submit", command=on_submit)
@@ -440,7 +443,7 @@ def get_user_input(case):
         root.mainloop()
         
         # Return the values after the window is closed
-        return subject_ID, continuation_state, stimulus_seed, int(num_sessions)
+        return subject_ID, is_continuation, stimulus_seed, int(num_sessions), int(first_block)
 
     # Dialog box for starting new session
     elif case=='session':
